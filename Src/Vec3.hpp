@@ -158,7 +158,7 @@ public:
     {
         Vec3r x = *this;
         x.LerpIP(dest, 1.0f - std::exp(-speed * delta_time));
-        // *this = SLerp(dest, 1.0 - std::expf(-speed * delta_time));
+        // *this = SLerp(dest, 1.0 - std::exp(-speed * delta_time));
         return x;
     }
 

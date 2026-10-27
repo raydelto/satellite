@@ -115,7 +115,7 @@ String& String::operator=(const char* str)
 }
 
 
-const char String::operator[](size_t index) const { return CStr()[index]; }
+char String::operator[](size_t index) const { return CStr()[index]; }
 char& String::operator[](size_t index) { return GetInternalPtr()[index]; }
 
 String::~String()
