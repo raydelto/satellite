@@ -8,6 +8,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <cmath>
 #include <unordered_map>
 
 namespace rl {
@@ -354,7 +355,7 @@ void Simulation::InitGraphics()
         DefaultFilter.AddSatellite(sat, GetSatColor(sat.Series.GetHash()));
     }
 
-    DefaultFilter.Finalize(SatModel, SatMaterial.shader);
+    DefaultFilter.Finalize();
 
     Earth = rl::LoadModel(ASSET_BASE_DIR "/Earth.glb");
     Skybox = rl::LoadModel(ASSET_BASE_DIR "/Skybox.glb");
@@ -380,7 +381,7 @@ void Simulation::InitGraphics()
         rl::SetShaderValue(AtmosphereShader, ambientLoc, ambient_color, rl::SHADER_UNIFORM_VEC4);
 
         // Create one light
-        rl::CreateLight(rl::LIGHT_DIRECTIONAL, GetSunPosition(), rl::Vector3Zero(), rl::Color { 230, 180, 130 },
+        rl::CreateLight(rl::LIGHT_DIRECTIONAL, GetSunPosition(), rl::Vector3Zero(), rl::Color { 230, 180, 130, 0 },
                         AtmosphereShader);
     }
 
@@ -397,7 +398,7 @@ void Simulation::InitGraphics()
         rl::SetShaderValue(SatLit, ambientLoc, ambient_color, rl::SHADER_UNIFORM_VEC4);
 
         // Create one light
-        rl::CreateLight(rl::LIGHT_DIRECTIONAL, GetSunPosition(), rl::Vector3Zero(), rl::Color { 230, 180, 130 },
+        rl::CreateLight(rl::LIGHT_DIRECTIONAL, GetSunPosition(), rl::Vector3Zero(), rl::Color { 230, 180, 130, 0 },
                         SatLit);
     }
 
@@ -414,7 +415,7 @@ void Simulation::InitGraphics()
         rl::SetShaderValue(EarthLit, ambientLoc, ambient_color, rl::SHADER_UNIFORM_VEC4);
 
         // Create one light
-        rl::CreateLight(rl::LIGHT_DIRECTIONAL, GetSunPosition(), rl::Vector3Zero(), rl::Color { 230, 180, 130 },
+        rl::CreateLight(rl::LIGHT_DIRECTIONAL, GetSunPosition(), rl::Vector3Zero(), rl::Color { 230, 180, 130, 0 },
                         EarthLit);
     }
 
@@ -426,7 +427,7 @@ void Simulation::InitGraphics()
 
     SelectedMaterial = rl::LoadMaterialDefault();
     SelectedMaterial.shader = SatLit;
-    SelectedMaterial.maps[rl::MATERIAL_MAP_DIFFUSE].color = rl::ColorAlpha(rl::Color(255, 165, 0), 255);
+    SelectedMaterial.maps[rl::MATERIAL_MAP_DIFFUSE].color = rl::ColorAlpha(rl::Color(255, 165, 0, 0), 255);
 
     AtmosphereMaterial = rl::LoadMaterialDefault();
     AtmosphereMaterial.shader = AtmosphereShader;
@@ -557,10 +558,10 @@ void Simulation::UpdateTransformations(bool warp_to)
 
 void Simulation::Step(int32 by, bool warp)
 {
-    if (int32(TimeFrameIndex) + by < 0) {
+    if (int64(TimeFrameIndex) + by < 0) {
         TimeFrameIndex = scNumTimeCaptures - 1;
     }
-    else if (int32(TimeFrameIndex) + by >= scNumTimeCaptures - 1) {
+    else if (int64(TimeFrameIndex) + by >= int64(scNumTimeCaptures) - 1) {
         TimeFrameIndex = 0;
     }
     else {
@@ -620,7 +621,7 @@ void Simulation::CheckControls()
     }
 }
 
-void Simulation::DrawText(const String& text, int32 cell_x, int32 cell_y, float32 size)
+void Simulation::DrawText(const String&, int32, int32, float32)
 {
     // return;
     // rl::DrawTextEx(Font, text.CStr(),
@@ -632,7 +633,7 @@ void Simulation::DrawText(const String& text, int32 cell_x, int32 cell_y, float3
 
 void Simulation::Render()
 {
-    if (rl::GetScreenWidth() != WindowWidth || rl::GetScreenHeight() != WindowHeight) {
+    if (uint32(rl::GetScreenWidth()) != WindowWidth || uint32(rl::GetScreenHeight()) != WindowHeight) {
         WindowWidth = rl::GetScreenWidth();
         WindowHeight = rl::GetScreenHeight();
         UICellSizeX = (float32(WindowWidth) - scUIPaddingHorizontal) / scUIGridHorizontalSplits;
@@ -713,7 +714,6 @@ void Simulation::Render()
 
     static constexpr ImGuiWindowFlags scWindowFlags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize |
                                                       ImGuiWindowFlags_AlwaysAutoResize;
-    bool open = true;
 
     ImGui::SetNextWindowSize(ImVec2(300, 500));
 
@@ -763,7 +763,7 @@ void Simulation::Render()
             ImGui::LabelText("Zoom", "%.02f%%", (GetZoomPercent()));
 
             ImGui::LabelText("Dataset", "%s", TmpDataset.Name.CStr());
-            ImGui::LabelText("Count", "%d / %d", pFilterInUse->GetSatelliteCount(), DefaultFilter.GetSatelliteCount());
+            ImGui::LabelText("Count", "%u / %u", pFilterInUse->GetSatelliteCount(), DefaultFilter.GetSatelliteCount());
         }
 
 
@@ -783,7 +783,6 @@ void Simulation::Render()
     }
     ImGui::End();
 
-    open = pPickedSatellite != nullptr;
 
     ImGui::SetNextWindowSize(ImVec2(300, 350));
     if (ImGui::Begin("Detail", nullptr, scWindowFlags)) {
@@ -793,7 +792,7 @@ void Simulation::Render()
             ImGui::LabelText("Name", "%s", pPickedSatellite->Name.CStr());
             ImGui::LabelText("Series", "%s", pPickedSatellite->Series.CStr());
             ImGui::LabelText("Id", "%s", pPickedSatellite->Identifier.CStr());
-            ImGui::LabelText("NORAD ID", "%d", pPickedSatellite->NoradId);
+            ImGui::LabelText("NORAD ID", "%u", pPickedSatellite->NoradId);
             ImGui::LabelText("Launched", "'%02d", pPickedSatellite->LaunchYear);
 
             // ImGui::TextUnformatted(String::Fmt("Series {}", pPickedSatellite->Series).CStr());
@@ -827,7 +826,6 @@ void Simulation::Render()
 
     ImGui::End();
 
-    open = true;
 
 
     rl::rlImGuiEnd();
@@ -835,12 +833,11 @@ void Simulation::Render()
 
     rl::EndDrawing();
 
-    ImGuiIO& imgui_io = ImGui::GetIO();
 
     if (!ImGui::IsAnyItemHovered()) {
         float zoom_movement = rl::GetMouseWheelMove();
-        if (abs(zoom_movement) > 0.005f) {
-            float32 distance_to_planet = abs((CameraPosition - CameraCenter).Length());
+        if (std::abs(zoom_movement) > 0.005f) {
+            float32 distance_to_planet = std::abs((CameraPosition - CameraCenter).Length());
 
             Zoom += zoom_movement * ((scZoomSensitivity * distance_to_planet)) * rl::GetFrameTime();
 
@@ -855,7 +852,7 @@ void Simulation::Render()
         if (rl::IsMouseButtonDown(rl::MOUSE_LEFT_BUTTON)) {
             rl::Vector2 mouse_delta = rl::GetMouseDelta();
 
-            float32 move_magnitude = abs(rl::Vector2Length(mouse_delta));
+            float32 move_magnitude = std::abs(rl::Vector2Length(mouse_delta));
 
             if (move_magnitude > 0.005f) {
                 AngleX += mouse_delta.x * scMouseSensitivity;
@@ -885,7 +882,7 @@ void Simulation::Render()
 }
 
 
-int main(int argc, char* argv[])
+int main()
 {
     Simulation sim {};
 
@@ -898,7 +895,7 @@ int main(int argc, char* argv[])
         printf("Rebuilding satellite cache\n");
 
         sim.TmpDataset.LoadFromTLE(ASSET_BASE_DIR "/Datasets/NORAD_TLE.txt");
-        printf("Loaded %d satellites\n", sim.TmpDataset.Size());
+        printf("Loaded %u satellites\n", sim.TmpDataset.Size());
 
 
         sim.TmpDataset.SaveToBin(ASSET_BASE_DIR);
