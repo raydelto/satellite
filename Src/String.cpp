@@ -4,6 +4,8 @@
 #include "Mem.hpp"
 #include "Slice.hpp"
 
+#include <cstring>
+
 String String::NoCopy(char* ptr, uint32 length)
 {
     String result;
