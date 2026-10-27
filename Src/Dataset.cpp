@@ -351,7 +351,6 @@ void Dataset::LoadFromBin(const String& bin_path)
     // Resize the vector to hold all time frames that were defined in the binary file
     Satellites.resize(header.NumSatellites);
 
-    float64 buffer[4];
 
     NumTimesteps = header.NumTimesteps;
 
