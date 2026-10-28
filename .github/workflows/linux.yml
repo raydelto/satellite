@@ -76,13 +76,11 @@ jobs:
           test -x build/space
           file build/space
 
-      # Informational headless smoke check: launch space for 20s under
-      # xvfb with software GL (llvmpipe). Exit 0 (clean exit) or 124
-      # (timeout kill = survived the whole window) are both pass; any
-      # other code is a crash. Non-fatal for now: runtime behavior is
-      # being verified separately (SATE-5); promote to gating once fixed.
-      - name: Smoke check (headless launch, informational)
-        continue-on-error: true
+      # Headless smoke check: launch space for 20s under xvfb with software GL
+      # (llvmpipe). Exit 0 (clean exit) or 124 (timeout kill = survived the
+      # whole window) are both pass; any other code or raylib WARNING/ERROR is
+      # a failure.
+      - name: Smoke check (headless launch)
         run: |
           set +e
           LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s "-screen 0 1280x720x24" \
@@ -92,7 +90,11 @@ jobs:
           set -e
           cat space_smoke.log
           if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then
-            echo "::warning::space exited with code $code during the headless smoke check. See the log above; runtime issues are tracked in SATE-5."
-          else
-            echo "Headless smoke check OK (exit $code: app ran or survived the full 20s window)."
+            echo "::error::space exited with code $code during the headless smoke check."
+            exit 1
           fi
+          if grep -E "^(WARNING|ERROR):" space_smoke.log; then
+            echo "::error::raylib emitted warnings or errors during the headless smoke check."
+            exit 1
+          fi
+          echo "Headless smoke check OK (exit $code: app ran or survived the full 20s window)."

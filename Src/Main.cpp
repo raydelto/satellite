@@ -357,7 +357,7 @@ void Simulation::InitGraphics()
 
     DefaultFilter.Finalize();
 
-    Earth = rl::LoadModel(ASSET_BASE_DIR "/Earth.glb");
+    Earth = rl::LoadModel(ASSET_BASE_DIR "/earth.glb");
     Skybox = rl::LoadModel(ASSET_BASE_DIR "/Skybox.glb");
     SunModel = rl::LoadModel(ASSET_BASE_DIR "/Sun.glb");
 
@@ -432,7 +432,8 @@ void Simulation::InitGraphics()
     AtmosphereMaterial = rl::LoadMaterialDefault();
     AtmosphereMaterial.shader = AtmosphereShader;
 
-    rl::Texture2D texture = Earth.materials[1].maps[rl::MATERIAL_MAP_DIFFUSE].texture;
+    rl::Texture2D texture =
+        Earth.materials[Earth.materialCount > 1 ? 1 : 0].maps[rl::MATERIAL_MAP_DIFFUSE].texture;
 
     EarthMaterial = rl::LoadMaterialDefault();
     EarthMaterial.shader = EarthLit;
@@ -695,7 +696,9 @@ void Simulation::Render()
 
 
     rl::Matrix newmat = rl::MatrixScale(0.0040, 0.0040, 0.0040);
-    rl::DrawMeshInstanced(Earth.meshes[0], EarthMaterial, &newmat, 1);
+    if (Earth.meshCount > 0) {
+        rl::DrawMeshInstanced(Earth.meshes[0], EarthMaterial, &newmat, 1);
+    }
 
     if (!bHideSatellites) {
         pFilterInUse->RenderSatellites(SatModel, SatMaterial);
